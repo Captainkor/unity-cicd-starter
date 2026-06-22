@@ -1,0 +1,38 @@
+name: 🔑 Acquire Unity Activation File (.alf)
+
+# One-off helper to obtain a Unity .ulf license for the UNITY_LICENSE secret.
+# Reads the Unity version from ProjectSettings/ProjectVersion.txt (nothing pinned), then runs the
+# matching Unity editor image to produce a manual-activation file (.alf).
+#
+# After it runs: open the run -> download the "Unity_Activation_File" artifact -> upload the .alf at
+# https://license.unity3d.com/manual. For a free Personal license the option may be hidden — see the
+# README's DevTools snippet. Download the .ulf, then:
+#   gh secret set UNITY_LICENSE --repo <you/your-repo> < your.ulf
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  activation:
+    name: Create manual activation file
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate .alf (Unity version auto-detected)
+        run: |
+          VERSION=$(grep 'm_EditorVersion:' ProjectSettings/ProjectVersion.txt | awk '{print $2}')
+          echo "Detected Unity version: $VERSION"
+          docker run --rm -v "$PWD:/work" -w /work \
+            "unityci/editor:ubuntu-${VERSION}-webgl-3" \
+            unity-editor -batchmode -nographics -logFile - -quit -createManualActivationFile || true
+          echo "---- .alf produced ----"
+          ls -la *.alf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Unity_Activation_File
+          path: "*.alf"
+          if-no-files-found: error
+          retention-days: 1

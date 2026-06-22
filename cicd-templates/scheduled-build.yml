@@ -1,0 +1,39 @@
+name: 🗓️ Weekly Preview Build
+
+# Fires a preview build on a schedule by dispatching the CI/CD Dispatcher with the same inputs as a
+# manual run. Uses CICD_PAT (needs 'workflow' scope). Build targets come from the BUILD_TARGETS
+# repo variable (falls back to WebGL).
+#
+# Change WHEN it runs by editing the cron below. Format: 'min hour day-of-month month day-of-week',
+# in UTC (NOT local time). day-of-week: 0/7=Sun, 1=Mon ... 6=Sat. Helper: https://crontab.guru
+#   '0 9 * * 1'   = Mondays 09:00 UTC (current)
+#   '0 9 * * *'   = every day 09:00 UTC
+#   '0 9 * * 1,4' = Mondays and Thursdays 09:00 UTC
+# Note: GitHub runs cron best-effort and can delay it by an hour+ (or skip it) at high load.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-build:
+    name: Dispatch preview build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger CI/CD Dispatcher (preview)
+        env:
+          GH_TOKEN: ${{ secrets.CICD_PAT }}
+        run: |
+          BT='${{ vars.BUILD_TARGETS }}'
+          [ -z "$BT" ] && BT='["WebGL"]'
+          gh workflow run ci-cd-dispatcher.yml \
+            --repo "${{ github.repository }}" \
+            -f buildType=preview \
+            -f skipTests=default \
+            -f deployTargets='[]' \
+            -f buildTargets="$BT"
+          echo "✅ Dispatched a weekly preview build (buildTargets=$BT)."
