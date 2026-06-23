@@ -195,3 +195,15 @@ scheduled-build.yml    weekly cron → dispatches a preview build
 The engine (reusable `step-*` workflows) lives in the [`Captainkor/Unity-CI-CD`](https://github.com/Captainkor/Unity-CI-CD)
 fork so it's stable and survives upstream changes. The caller workflows here are version-agnostic;
 all project specifics come from the variables + secrets you set.
+
+---
+
+## License & credits
+
+MIT — see [LICENSE](LICENSE). This kit stands on the shoulders of (all MIT):
+
+- **[Avalin/Unity-CI-CD](https://github.com/Avalin/Unity-CI-CD)** (© 2025 Astrid Avalin Soerensen) — the pipeline this wraps; the templates here derive from its `CICD_Workflows/` and the engine runs from a fork of it.
+- **[GameCI](https://game.ci)** — the Unity build/test actions and editor images under the hood.
+- **[jlumbroso/free-disk-space](https://github.com/jlumbroso/free-disk-space)** — frees runner disk for WebGL builds.
+
+Full third-party attributions: [NOTICE](NOTICE). *Unity is a trademark of Unity Technologies; this project is not affiliated with Unity, Avalin, or GameCI.*
