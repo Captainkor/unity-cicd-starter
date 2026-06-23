@@ -88,6 +88,36 @@ http.createServer((q,s)=>{let u=decodeURIComponent(q.url.split('?')[0]);if(u==='
 
 ---
 
+## Changing the weekly build schedule
+
+The auto-build timing is the `cron:` line in
+[`cicd-templates/scheduled-build.yml`](cicd-templates/scheduled-build.yml) (and your installed copy at
+`.github/workflows/scheduled-build.yml`):
+
+```yaml
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # <- change this
+```
+
+Cron is 5 fields — `minute hour day-of-month month day-of-week` — **in UTC** (GitHub ignores your
+local timezone). day-of-week: `0/7`=Sun, `1`=Mon … `6`=Sat. Build/verify at https://crontab.guru.
+
+| Cron | When (UTC) |
+|------|-----------|
+| `0 9 * * 1` | Mondays 09:00 (default) |
+| `30 14 * * 5` | Fridays 14:30 |
+| `0 9 * * *` | Every day 09:00 |
+| `0 9 * * 1,4` | Mondays & Thursdays |
+| `0 */12 * * *` | Every 12 hours |
+
+09:00 UTC ≈ 01:00 US-Pacific / 04:00 US-Eastern (shift 1h for daylight saving). Add more `- cron:`
+lines for multiple times. **Don't want a scheduled build at all?** Just delete `scheduled-build.yml`.
+
+> ⚠️ The time is a **target, not exact** — GitHub runs cron best-effort and can delay it by an hour+
+> (or skip it) under load, and disables it after 60 days of repo inactivity. Commit changes to the
+> **default branch** — scheduled workflows only run from there.
+
 ## Build targets — add or change platforms
 
 The **`BUILD_TARGETS`** variable (a JSON array) drives the build matrix — each target builds in
