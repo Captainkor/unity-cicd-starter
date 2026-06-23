@@ -88,15 +88,53 @@ http.createServer((q,s)=>{let u=decodeURIComponent(q.url.split('?')[0]);if(u==='
 
 ---
 
-## Enabling itch.io deploy (optional)
+## Build targets — add or change platforms
 
-1. Create an itch.io **HTML** project; note your username + the project URL slug.
-2. Get a [Butler API key](https://itch.io/user/settings/api_key).
-3. Add secrets `BUTLER_API_KEY`, `ITCH_USERNAME`, `ITCH_PROJECT`.
-4. Set variable `DEPLOY_TARGETS` = `["itch.io"]`.
-5. Push a release tag — the build deploys to the itch `webgl` channel.
+The **`BUILD_TARGETS`** variable (a JSON array) drives the build matrix — each target builds in
+parallel and produces its own artifact. It's used by the weekly schedule and tag builds too.
 
-itch.io hosting is free (revenue share only if you *sell*). The running cost is GitHub Actions minutes (below).
+```bash
+# e.g. add Windows alongside WebGL:
+gh variable set BUILD_TARGETS --repo <you/repo> --body '["WebGL","StandaloneWindows64"]'
+```
+(Or edit it under Settings → Secrets and variables → Actions → Variables; or override it per run when
+you manually dispatch the **⚙️ CI/CD Dispatcher**.)
+
+| `BUILD_TARGETS` value | Runner (cost) | itch channel | Notes |
+|----------------------|---------------|--------------|-------|
+| `WebGL` | ubuntu (1×) | `webgl` | Browser-playable. Default. |
+| `StandaloneWindows64` | ubuntu (1×) | `windows-64` | Downloadable. |
+| `StandaloneLinux64` | ubuntu (1×) | `linux-client` | Downloadable. |
+| `StandaloneOSX` | **macOS (10×)** | `osx-desktop` | Needs `MACOS_RUNNER`. |
+| `Android` | ubuntu (1×) | `android` | Needs keystore/signing for store builds. |
+| `iOS` | **macOS (10×)** | `osx-ios` | Needs Apple Developer signing (+ App Store keys for TestFlight). |
+
+> ⚠️ **Cost:** `StandaloneOSX` and `iOS` use macOS runners billed at **10× minutes** (a 30-min build
+> = 300 billed minutes) — add them only when needed. WebGL/Windows/Linux/Android stay at 1×.
+> Authoritative list: [Avalin Supported-Platforms wiki](https://github.com/Avalin/Unity-CI-CD/wiki/Supported-Platforms).
+
+## Deploying to itch.io
+
+Off by default (`DEPLOY_TARGETS=[]`). To publish on every release:
+
+1. **Create the itch.io project** (Dashboard → *Create new project*). Set **Kind of project = HTML**
+   for a browser-playable WebGL build (use **Downloadable** for native builds). Note your username and
+   the project **URL slug** — the `<slug>` in `https://<username>.itch.io/<slug>`. Keep it
+   Draft/Restricted until you're ready.
+2. **Get a Butler API key:** https://itch.io/user/settings/api_key.
+3. **Add secrets:** `BUTLER_API_KEY`, `ITCH_USERNAME`, `ITCH_PROJECT` (the slug).
+4. **Enable it:** set `DEPLOY_TARGETS` = `["itch.io"]`.
+5. **Release:** push a SemVer tag (`git tag v0.1.0 && git push origin v0.1.0`) or dispatch with
+   `buildType: release_candidate`. (Deploy never runs for `preview`.)
+
+**How it maps:** each build target is pushed with `butler` to its **own channel** on the *same* itch
+project (see the channel column above), versioned via `--userversion` (your tag/CI version). So
+`BUILD_TARGETS=["WebGL","StandaloneWindows64"]` populates both the `webgl` (playable) and `windows-64`
+(download) channels on one page. You can also deploy to several destinations at once, e.g.
+`DEPLOY_TARGETS=["itch.io","gh-pages"]` (GitHub Pages is WebGL-only and needs a paid plan for private repos).
+
+> itch.io hosting + Butler are **free** — a revenue share applies only if you *sell* the game. The only
+> running cost is the GitHub Actions build minutes (below).
 
 ---
 
